@@ -68,12 +68,14 @@ public class ServerImpl implements IServer {
         ServerSocket server = null;
         try {
             server = new ServerSocket(8888);
+            server.setSoTimeout(1000);
         } catch (Exception e) {
             logger.error("", e);
         }
-
+        Socket socket = null;
         while (true){
-            queue.offer(getSocket(server));
+            socket = getSocket(server);
+            queue.offer(socket);
         }
 
     }
@@ -98,6 +100,14 @@ public class ServerImpl implements IServer {
 
             String response = "";
             while (socket.isConnected()) {
+                //simulate business
+                try {
+                    Thread.currentThread().sleep(1000 * 60);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+
                 try {
                     write = new PrintWriter(socket.getOutputStream());
                 } catch (IOException e) {

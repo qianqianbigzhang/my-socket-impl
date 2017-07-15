@@ -48,6 +48,7 @@ public class ClientImpl {
             BufferedReader in = null;
             try {
                 socket = new Socket("127.0.0.1", 8888);
+                socket.setSoTimeout(1000);
                 logger.info("创建第{}个客户端Socket,port={}",clientId,socket.getLocalPort());
                 String response = "";
                 int counter = 0;
@@ -64,7 +65,7 @@ public class ClientImpl {
                         logger.info("无响应，socket may closed!");
                         break;
                     }
-                    Thread.currentThread().sleep(1000*5);
+//                    Thread.currentThread().sleep(1000*5);
                 }
             } catch (Exception e) {
                 logger.error("", e);
