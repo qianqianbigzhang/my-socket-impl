@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -15,7 +14,7 @@ import java.net.Socket;
  */
 public class ServerImpl implements IServer {
 
-    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected static Logger logger = LoggerFactory.getLogger(ServerImpl.class);
     private ServerSocket server = null;
 
     @Override
@@ -27,41 +26,79 @@ public class ServerImpl implements IServer {
         run();
     }
 
-    public void run() {
-        try {
-            try {
-                server = new ServerSocket(8888);
-                logger.info("服务器启动成功");
-            } catch (Exception e) {
-                logger.info("没有启动监听：" + e);
-            }
-            Socket socket = null;
+    public Socket getSocket(Socket socket) {
+        if (socket == null) {
             try {
                 socket = server.accept();
-            } catch (Exception e) {
-                logger.error("Error." + e);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            String line;
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter writer = new PrintWriter(socket.getOutputStream());
-            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            logger.info("Client:" + in.readLine());
-            line = br.readLine();
-            while (!line.equals("end")) {
-                writer.println(line);
-                writer.flush();
-                logger.info("Server:" + line);
-                logger.info("Client:" + in.readLine());
-                line = br.readLine();
-            }
-            writer.close();
-            in.close();
-            socket.close();
-            server.close();
+        }
+        return socket;
+    }
+
+
+
+    public void run() {
+        try {
+            server = new ServerSocket(8888);
         } catch (Exception e) {
             logger.error("",e);
         }
+
+        int count = 0;
+        for (;;count++){
+            new Thread(new Worker(getSocket(null))).run();
+            if(count > 2){
+                try {
+                    Thread.currentThread().sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
     }
+
+    static class Worker implements Runnable{
+
+        private Socket socket;
+
+        public Worker(Socket socket) {
+            this.socket = socket;
+        }
+
+        @Override
+        public void run() {
+            do0(socket);
+
+        }
+
+        public void do0(Socket socket) {
+            logger.info("socket.isConnected()={}",socket.isConnected());
+            while (socket.isConnected()) {
+                BufferedReader in = null;
+                try {
+                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                String request = null;
+                try {
+                    request = in.readLine();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (request.contains("2")) {
+                    logger.info("client request contain 2");
+                } else {
+                    logger.info("client request not contain 2");
+                }
+            }
+            logger.info("socket is not connected");
+        }
+    }
+
 
     @Override
     public void stop() {

@@ -22,21 +22,16 @@ public class ClientImpl {
         Socket socket = null;
         try {
             socket = new Socket("127.0.0.1", 8888);
-            logger.info("ClientImpl start success....");
-            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            write = new PrintWriter(socket.getOutputStream());
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String readline;
-            readline = br.readLine();
-            while (!readline.equals("end")) {
-                write.println(readline);
+
+            while (true) {
+                write = new PrintWriter(socket.getOutputStream());
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                write.println("1234567890");
                 write.flush();
-                logger.info("Client:" + readline);
-                logger.info("Server:" + in.readLine());
-                readline = br.readLine();
+                Thread.currentThread().sleep(100);
             }
         } catch (Exception e) {
-            System.out.println("can not listen to:" + e);// 出错，打印出错信息
+            logger.error("", e);
         } finally {
             write.close();
             try {
