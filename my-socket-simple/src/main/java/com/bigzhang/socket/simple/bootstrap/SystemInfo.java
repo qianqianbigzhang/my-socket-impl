@@ -1,4 +1,4 @@
-package com.bigzhang.socket.simple;
+package com.bigzhang.socket.simple.bootstrap;
 
 import java.lang.management.ManagementFactory;
 import java.net.Inet4Address;

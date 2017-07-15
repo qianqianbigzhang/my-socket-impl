@@ -1,4 +1,4 @@
-package com.bigzhang.socket.simple;
+package com.bigzhang.socket.simple.bootstrap;
 
 import java.util.Timer;
 import java.util.TimerTask;
