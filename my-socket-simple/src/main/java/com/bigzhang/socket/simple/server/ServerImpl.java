@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -18,6 +19,7 @@ public class ServerImpl implements IServer {
     protected static Logger logger = LoggerFactory.getLogger(ServerImpl.class);
     private LinkedBlockingQueue<Socket> queue = new LinkedBlockingQueue(5);
     private int count = 0;
+
     @Override
     public void start() {
         logger.info("ServerImpl start .........");
@@ -28,19 +30,20 @@ public class ServerImpl implements IServer {
             public void run() {
                 accept0();
             }
-        }).run();
+        }).start();
         // a thread dispatch
         new Thread(new Runnable() {
             @Override
             public void run() {
                 doWoker0();
             }
-        }).run();
+        }).start();
     }
+
     public void doWoker0() {
         for (; ; ) {
             try {
-                new Thread(new Worker(queue.take())).run();
+                new Thread(new Worker(queue.take())).start();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -48,25 +51,31 @@ public class ServerImpl implements IServer {
         }
 
     }
-    public Socket accept0() {
+
+    private Socket getSocket(ServerSocket server) {
         Socket socket = null;
-        ServerSocket  server = null;
+        try {
+            socket = server.accept();
+            count++;
+            logger.info("这个socket是第{}个连接,port={}", count, socket.getPort());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return socket;
+    }
+
+    public void accept0() {
+        ServerSocket server = null;
         try {
             server = new ServerSocket(8888);
         } catch (Exception e) {
             logger.error("", e);
         }
-        if (socket == null) {
-            try {
-                socket = server.accept();
-                count++;
-                logger.info("这个socket是第{}个连接",count);
-                queue.offer(socket);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+
+        while (true){
+            queue.offer(getSocket(server));
         }
-        return socket;
+
     }
 
     static class Worker implements Runnable {
@@ -85,7 +94,16 @@ public class ServerImpl implements IServer {
         public void do0(Socket socket) {
             logger.info("socket.isConnected()={}", socket.isConnected());
             BufferedReader in = null;
+            PrintWriter write = null;
+
+            String response = "";
             while (socket.isConnected()) {
+                try {
+                    write = new PrintWriter(socket.getOutputStream());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 try {
                     in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 } catch (IOException e) {
@@ -98,15 +116,18 @@ public class ServerImpl implements IServer {
                     e.printStackTrace();
                 }
 
-                if(request==null){
+                if (request == null) {
                     logger.info("receive 数据为空!但是为什么还要接受null呢");
                     try {
                         Thread.currentThread().sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                }else{
-                    logger.info("receive ={}",request);
+                } else {
+                    response =  "response:" + request;
+                    write.println(response);
+                    write.flush();
+                    logger.info("receive port={} : ={}", socket.getPort(), request);
                 }
 
             }

@@ -14,9 +14,10 @@ public class ServerImplTest  extends TestCase {
         super.setUp();
     }
 
-    public void test(){
+    public void test() throws InterruptedException {
         ServerImpl server = new ServerImpl();
         server.start();
+        Thread.currentThread().sleep(1000000000);
     }
 
 }

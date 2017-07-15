@@ -22,7 +22,7 @@ public class ClientImpl {
         int counter = 1;
         for (;;counter++){
             new Thread(new ClientWorker(counter)).start();
-            logger.info("创建第{}个客户端Socket",counter);
+
             if(counter >3){
                 break;
             }
@@ -48,7 +48,8 @@ public class ClientImpl {
             BufferedReader in = null;
             try {
                 socket = new Socket("127.0.0.1", 8888);
-
+                logger.info("创建第{}个客户端Socket,port={}",clientId,socket.getLocalPort());
+                String response = "";
                 int counter = 0;
                 while (socket.isConnected()) {
                     counter++;
@@ -58,12 +59,12 @@ public class ClientImpl {
                     logger.info("ClientId={} send msg={}",clientId,data);
                     write.println(data);
                     write.flush();
-
-                    Thread.currentThread().sleep(1000*5);
-                    if(counter >= 1){
+                    response = in.readLine();
+                    if(response == null || "".equals(response)){
+                        logger.info("无响应，socket may closed!");
                         break;
                     }
-
+                    Thread.currentThread().sleep(1000*5);
                 }
             } catch (Exception e) {
                 logger.error("", e);
@@ -78,10 +79,15 @@ public class ClientImpl {
                 } catch (IOException e) {
 
                 }
+                int port = -1;
                 try {
+                     port = socket.getLocalPort();
+                    logger.info("关闭socket>port={}",port);
                     if(socket!=null)
                     socket.close();
+
                 } catch (IOException e) {
+                    logger.error("关闭port="+port+"失败",e);
                 }
 
             }
