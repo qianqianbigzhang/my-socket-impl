@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by abc on 2017/7/15.
@@ -15,21 +16,52 @@ import java.net.Socket;
 public class ServerImpl implements IServer {
 
     protected static Logger logger = LoggerFactory.getLogger(ServerImpl.class);
-    private ServerSocket server = null;
-
+    private LinkedBlockingQueue<Socket> queue = new LinkedBlockingQueue(5);
+    private int count = 0;
     @Override
     public void start() {
         logger.info("ServerImpl start .........");
         logger.info("ServerImpl start .........");
-        logger.info("ServerImpl start .........");
-        logger.info("ServerImpl start .........");
-        run();
+        //a thread accept
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                accept0();
+            }
+        }).run();
+        // a thread dispatch
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                doWoker0();
+            }
+        }).run();
     }
+    public void doWoker0() {
+        for (; ; ) {
+            try {
+                new Thread(new Worker(queue.take())).run();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
-    public Socket getSocket(Socket socket) {
+        }
+
+    }
+    public Socket accept0() {
+        Socket socket = null;
+        ServerSocket  server = null;
+        try {
+            server = new ServerSocket(8888);
+        } catch (Exception e) {
+            logger.error("", e);
+        }
         if (socket == null) {
             try {
                 socket = server.accept();
+                count++;
+                logger.info("这个socket是第{}个连接",count);
+                queue.offer(socket);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -37,30 +69,7 @@ public class ServerImpl implements IServer {
         return socket;
     }
 
-
-
-    public void run() {
-        try {
-            server = new ServerSocket(8888);
-        } catch (Exception e) {
-            logger.error("",e);
-        }
-
-        int count = 0;
-        for (;;count++){
-            new Thread(new Worker(getSocket(null))).run();
-            if(count > 2){
-                try {
-                    Thread.currentThread().sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-    }
-
-    static class Worker implements Runnable{
+    static class Worker implements Runnable {
 
         private Socket socket;
 
@@ -71,13 +80,12 @@ public class ServerImpl implements IServer {
         @Override
         public void run() {
             do0(socket);
-
         }
 
         public void do0(Socket socket) {
-            logger.info("socket.isConnected()={}",socket.isConnected());
+            logger.info("socket.isConnected()={}", socket.isConnected());
+            BufferedReader in = null;
             while (socket.isConnected()) {
-                BufferedReader in = null;
                 try {
                     in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 } catch (IOException e) {
@@ -89,13 +97,30 @@ public class ServerImpl implements IServer {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                if (request.contains("2")) {
-                    logger.info("client request contain 2");
-                } else {
-                    logger.info("client request not contain 2");
+
+                if(request==null){
+                    logger.info("receive 数据为空!但是为什么还要接受null呢");
+                    try {
+                        Thread.currentThread().sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }else{
+                    logger.info("receive ={}",request);
                 }
+
             }
+
+            try {
+                in.close();
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
             logger.info("socket is not connected");
+
         }
     }
 
@@ -103,12 +128,5 @@ public class ServerImpl implements IServer {
     @Override
     public void stop() {
 
-        if (server != null) {
-            try {
-                server.close();
-            } catch (IOException e) {
-                logger.error("serverSocket.close fail!", e);
-            }
-        }
     }
 }

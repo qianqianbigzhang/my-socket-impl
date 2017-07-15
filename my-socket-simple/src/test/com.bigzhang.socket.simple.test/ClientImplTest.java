@@ -14,8 +14,9 @@ public class ClientImplTest  extends TestCase {
         super.setUp();
     }
 
-    public void test(){
+    public void test() throws InterruptedException {
         ClientImpl client = new ClientImpl();
         client.start();
+        Thread.currentThread().sleep(1000000000);
     }
 }

@@ -14,36 +14,80 @@ import java.net.Socket;
  */
 public class ClientImpl {
 
-    protected Logger logger = LoggerFactory.getLogger(getClass());
+    protected static  Logger logger = LoggerFactory.getLogger(ClientImpl.class);
 
     public void start() {
-        PrintWriter write = null;
-        BufferedReader in = null;
-        Socket socket = null;
-        try {
-            socket = new Socket("127.0.0.1", 8888);
 
-            while (true) {
-                write = new PrintWriter(socket.getOutputStream());
-                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                write.println("1234567890");
-                write.flush();
-                Thread.currentThread().sleep(100);
+        //main Thread
+        int counter = 1;
+        for (;;counter++){
+            new Thread(new ClientWorker(counter)).start();
+            logger.info("创建第{}个客户端Socket",counter);
+            if(counter >3){
+                break;
             }
-        } catch (Exception e) {
-            logger.error("", e);
-        } finally {
-            write.close();
+        }
+
+
+    }
+
+    static class ClientWorker implements Runnable{
+
+        private Integer clientId;
+
+        private Socket socket;
+
+        public ClientWorker(Integer clientId) {
+            logger.info("clientId={}",clientId);
+            this.clientId = clientId;
+        }
+
+        @Override
+        public void run() {
+            PrintWriter write = null;
+            BufferedReader in = null;
             try {
-                in.close();
-            } catch (IOException e) {
+                socket = new Socket("127.0.0.1", 8888);
+
+                int counter = 0;
+                while (socket.isConnected()) {
+                    counter++;
+                    write = new PrintWriter(socket.getOutputStream());
+                    in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    String data = "Clientid="+clientId+"-1";
+                    logger.info("ClientId={} send msg={}",clientId,data);
+                    write.println(data);
+                    write.flush();
+
+                    Thread.currentThread().sleep(1000*5);
+                    if(counter >= 1){
+                        break;
+                    }
+
+                }
+            } catch (Exception e) {
+                logger.error("", e);
+            } finally {
+                if(write != null){
+                    write.close();
+                }
+
+                try {
+                    if(in!=null)
+                    in.close();
+                } catch (IOException e) {
+
+                }
+                try {
+                    if(socket!=null)
+                    socket.close();
+                } catch (IOException e) {
+                }
 
             }
-            try {
-                socket.close();
-            } catch (IOException e) {
-            }
-
         }
     }
+
+
+
 }
